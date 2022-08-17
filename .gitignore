@@ -1,0 +1,6 @@
+!jest.config.js
+/dist
+/node_modules
+/dist.zip
+/coverage
+*.xlsx
