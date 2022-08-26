@@ -449,7 +449,7 @@ describe('Dynamic mapper testing', () => {
         })
     })
 
-    it('should omit specific props, subEntities and rename', () => {
+    it('should pick all entities props, subEntities and rename', () => {
         const data = {
             idReward: 1,
             name: '',
@@ -486,12 +486,58 @@ describe('Dynamic mapper testing', () => {
             limitUser: []
         }
         const mapper = new Mapper()
-        const result = mapper.mapToCreate<Category>(new Category(), data, { omit: ['subCategory.name'], rename: { name: 'n', subCategory: 'sub' } })
+        const result = mapper.mapToCreate<Category>(new Category(), data, { pick: ['name', 'subCategory.description', 'subCategory.name'], rename: { name: 'n', subCategory: 'sub' } })
+        expect(result).toEqual({
+            n: '',
+            sub: {
+                description: '',
+                name: ''
+            }
+        })
+    })
+
+    it('should omit all props, subEntities and rename', () => {
+        const data = {
+            idReward: 1,
+            name: '',
+            description: '',
+            subCategory: {
+                name: '',
+                description: ''
+            },
+            imageAlt: '',
+            legal: '',
+            stock: 2,
+            tags: '',
+            reStockPoint: 1,
+            rewardDays: '',
+            status: 1,
+            stockNotified: 1,
+            notificationEmail: '',
+            countUsed: 1,
+            orderHighlight: 1,
+            imageHighlight: '',
+            orderNovelty: 1,
+            createdAt: new Date,
+            updatedAt: new Date,
+            createdByUser: '',
+            updatedByUser: '',
+            partner: {},
+            category: {},
+            subcategory: {},
+            channel: [],
+            store: [],
+            ecommerce: {},
+            paymentMethod: [],
+            discount: {},
+            limitUser: []
+        }
+        const mapper = new Mapper()
+        const result = mapper.mapToCreate<Category>(new Category(), data, { omit: ['subCategory.name', 'subCategory.description'], rename: { name: 'n', subCategory: 'sub' } })
         expect(result).toEqual({
             n: '',
             status: 1,
             sub: {
-                description: ''
             }
         })
     })
