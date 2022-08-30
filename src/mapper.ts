@@ -98,7 +98,7 @@ export class Mapper {
     }
 
     private renamePropsWithSubProps(filteredSubProps: any, propsToRename: any): any {
-        Object.keys(filteredSubProps).filter(prop => Object.keys(propsToRename).includes(prop)).
+        Object.keys(propsToRename).filter(propToRename => this.subpropsbyproperty.has(propToRename)).
         forEach(prop => {
             filteredSubProps[propsToRename[prop]] = filteredSubProps[prop]
             delete filteredSubProps[prop]
