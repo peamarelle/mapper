@@ -88,19 +88,17 @@ export class Mapper {
 
         subPropOmitted = this.renamePropsWithSubProps(subPropOmitted, propsToRename)
 
-        filteredProps.filter(prop => !Object.keys(propsToRename).includes(prop))
-        .forEach((prop: string) => {
-           mappedResult[prop] = data[prop]
-        })
+        filteredProps.filter(prop => !Object.keys(propsToRename).includes(prop)).forEach((prop: string) => mappedResult[prop] = data[prop])
 
         return { ...mappedResult, ...subPropPicked, ...subPropOmitted }
     }
 
     private  pickSubProps(data: any): { [key: string]: any } {
         const mappedResult: { [key: string]: any } = {}
-        this.propertiesWithSubPropsToPick.forEach((value, prop)=> mappedResult[prop] = {})
+
         this.propertiesWithSubPropsToPick.forEach((subProps, prop) => {
-            subProps.forEach(subProp => {mappedResult[prop][subProp] = data[prop][subProp]})
+            mappedResult[prop] = {}
+            subProps.forEach(subProp => mappedResult[prop][subProp] = data[prop][subProp])
         })
         return mappedResult
     }
@@ -111,9 +109,7 @@ export class Mapper {
         this.propertiesWithSubPropsToOmit.forEach((subProps, prop) => {
             mappedResult[prop] = {}
             Object.keys(data[prop]).filter(subProp => !subProps.includes(subProp)).
-            forEach(subProp => {
-                mappedResult[prop][subProp] = data[prop][subProp]
-            })
+            forEach(subProp => mappedResult[prop][subProp] = data[prop][subProp])
         })
         return mappedResult
     }
@@ -130,9 +126,7 @@ export class Mapper {
     private renamePropsWithOutSubProps(propsToRename: any, data: any) {
         const mappedResult: { [key: string]: any } = {}
         Object.keys(propsToRename).filter(prop => !this.propertiesWithSubPropsToOmit.has(prop) && !this.propertiesWithSubPropsToPick.has(prop))
-        .forEach((prop: string) => {
-            mappedResult[propsToRename[prop]] = data[prop]
-        })
+        .forEach((prop: string) => mappedResult[propsToRename[prop]] = data[prop])
         return mappedResult
     }
 }
