@@ -12,10 +12,9 @@ export class Mapper {
     public mapToCreate<t>(entity: t, data: any, opts?: IOption): { [key: string]: any } {
         this.setEntityProps(entity)
         this.setData(data)
-        this.isUniqueOption(opts)
-        opts?.omit && this.setPropertiesWithSubProps(opts.omit)
-        opts?.pick && this.setPropertiesWithSubProps(opts.pick)
-        const filteredProps = (opts?.omit || opts?.pick) ? this.pickOrOmitProps(opts) : this.filterProps(data)
+        this.ensureThatNotHasPickAndOmit(opts)
+        opts?.omit && this.setPropertiesWithSubProps(opts.omit) || opts?.pick && this.setPropertiesWithSubProps(opts.pick)
+        const filteredProps = (opts?.omit || opts?.pick) ? this.pickOrOmitProps(opts) : this.filterEntityProps(data)
         const mappedResult = opts?.rename ? this.mapRename(filteredProps, opts.rename, opts) : this.map(filteredProps, opts)
         return mappedResult
     }
@@ -24,13 +23,17 @@ export class Mapper {
         this.entityProps = Object.keys(entity)
     }
 
-    private  isEntityProp(prop: any): boolean {
+    private setData (data: any) {
+        this._data = data
+    }
+
+    private  belongsEntity(prop: any): boolean {
         return this.entityProps.includes(prop)
     }
 
 
-    private  filterProps(data: any): Array<string> {
-        return Object.keys(data).filter(prop => this.isEntityProp(prop))
+    private  filterEntityProps(data: any): Array<string> {
+        return Object.keys(data).filter(prop => this.belongsEntity(prop))
     }
 
     private  pickOrOmitProps(ops: IOption): Array<string> {
@@ -38,7 +41,16 @@ export class Mapper {
     }
 
     private  pickProps(pick: Array<string>): Array<string> {
-        return Object.keys(this._data).filter(prop => (pick.includes(prop) || this.subpropsbyproperty.has(prop)) && this.isEntityProp(prop))
+        return Object.keys(this._data).filter(prop => (pick.includes(prop) || this.subpropsbyproperty.has(prop)) && this.belongsEntity(prop))
+
+    }
+    
+    private  omitProps(omit: Array<string>): Array<string> {
+        return Object.keys(this._data).filter(prop => !omit.includes(prop) && this.belongsEntity(prop))
+    }
+
+    private  ensureThatNotHasPickAndOmit(opts?: IOption): void | never {
+        if (opts?.omit && opts?.pick) throw new Error('Options parameter must have pick or omit but no both')
     }
 
     private  setPropertiesWithSubProps(opt: Array<string>): void {
@@ -48,32 +60,6 @@ export class Mapper {
             this.subpropsbyproperty.get(property)!.push(subProperty)
             
         })
-    }
-
-    private  omitProps(omit: Array<string>): Array<string> {
-        return Object.keys(this._data).filter(prop => !omit.includes(prop) && this.isEntityProp(prop))
-    }
-
-    private  isUniqueOption(opts?: IOption): void | never {
-        if (opts?.omit && opts?.pick) throw new Error('Options parameter must have pick or omit but no both')
-    }
-
-    private  map(filteredProps: Array<string>, opts?: IOption): { [key: string]: any } {
-        const mappedResult: { [key: string]: any } = {}
-
-        const cleanedProps = opts?.pick ? this.pickSubProps() : opts?.omit ? this.omitSubProps() : {}
-        
-        filteredProps.forEach(prop => mappedResult[prop] = this._data[prop])
-
-        return { ...mappedResult, ...cleanedProps }
-    }
-
-    private  mapRename(filteredProps: Array<string>, propsToRename: any, opts?: IOption): { [key: string]: any } {
-        const mappedResult = this.renamePropsWithOutSubProps(propsToRename)
-        const cleanedProps = this.map(filteredProps.filter(prop => !Object.keys(propsToRename).includes(prop)), opts)
-        const renamedPropsWithSubProps = this.renamePropsWithSubProps(cleanedProps, propsToRename)
-
-        return {...mappedResult, ...renamedPropsWithSubProps}
     }
 
     private  pickSubProps(): { [key: string]: any } {
@@ -97,23 +83,42 @@ export class Mapper {
         return mappedResult
     }
 
-    private renamePropsWithSubProps(filteredSubProps: any, propsToRename: any): any {
+    private  map(filteredProps: Array<string>, opts?: IOption): { [key: string]: any } {
+        const mappedResult: { [key: string]: any } = {}
+
+        const cleanedData = opts?.pick ? this.pickSubProps() : opts?.omit ? this.omitSubProps() : {}
+        
+        filteredProps.forEach(prop => mappedResult[prop] = this._data[prop])
+
+        return { ...mappedResult, ...cleanedData }
+    }
+
+    private  mapRename(filteredProps: Array<string>, propsToRename: any, opts: IOption): { [key: string]: any } {
+        const renamedProps = this.renamePropsWithOutSubProps(propsToRename)
+
+        const propsToOnlyMap = filteredProps.filter(prop => !Object.keys(propsToRename).includes(prop))
+
+        const mappedData = this.map(propsToOnlyMap, opts)
+        
+        const renamedPropsWithSubProps = this.renamePropsWithSubProps(mappedData, propsToRename)
+
+        return {...renamedProps, ...renamedPropsWithSubProps}
+    }
+
+    private renamePropsWithSubProps(props: any, propsToRename: any): any {
         Object.keys(propsToRename).filter(propToRename => this.subpropsbyproperty.has(propToRename)).
         forEach(prop => {
-            filteredSubProps[propsToRename[prop]] = filteredSubProps[prop]
-            delete filteredSubProps[prop]
+            props[propsToRename[prop]] = props[prop]
+            delete props[prop]
         })
-        return filteredSubProps
+        return props
     }
 
     private renamePropsWithOutSubProps(propsToRename: any) {
-        const mappedResult: { [key: string]: any } = {}
+        const renamedProps: { [key: string]: any } = {}
         Object.keys(propsToRename).filter(prop => !this.subpropsbyproperty.has(prop))
-        .forEach((prop: string) => mappedResult[propsToRename[prop]] = this._data[prop])
-        return mappedResult
+        .forEach((prop: string) => renamedProps[propsToRename[prop]] = this._data[prop])
+        return renamedProps
     }
 
-    private setData (data: any) {
-        this._data = data
-    }
 }
