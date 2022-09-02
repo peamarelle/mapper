@@ -5,4 +5,5 @@ export class Category {
         description: ''
     }
     private status = 1
+    private stuff: any[] = []
 }
