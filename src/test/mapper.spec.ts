@@ -3,6 +3,7 @@ import { Entity } from "../entities/entity";
 import { User } from "../entities/user";
 import { Category } from "../entities/category";
 
+// { pick: { single: ['name', 'id'], object: { subCategory: ['name', 'description'] }, array: { rewards: ['desc','idNum']} }, { rename: { name: 'nombre', entitties:  [{ id: 'key'}, {name: 'nombre'}] } }}
 describe('Dynamic mapper testing', () => {
     it('should map all entity props', () => {
         const data = {
@@ -61,7 +62,7 @@ describe('Dynamic mapper testing', () => {
             discount: {},
         })
     })
-    it('should map only the props that are in the pick option', () => {
+    it('should map only the props that are in the single prps of pick option', () => {
         const data = {
             idReward: 1,
             name: '',
@@ -95,104 +96,14 @@ describe('Dynamic mapper testing', () => {
             limitUser: []
         }
         const mapper = new Mapper()
-        const result = mapper.mapToCreate<Entity>(new Entity(), data, { pick: ['idReward', 'name', 'description'] })
+        const result = mapper.mapToCreate<Entity>(new Entity(), data, { pick: { single: ['name', 'description', 'idReward'] }})
         expect(result).toEqual({
             idReward:  1,
             name: '',
             description: ''
         })
     })
-    it('should map only the props that are not in the omit option', () => {
-        const data = {
-            idReward: 1,
-            name: '',
-            description: '',
-            image: '',
-            imageAlt: '',
-            legal: '',
-            stock: 2,
-            tags: '',
-            reStockPoint: 1,
-            rewardDays: '',
-            status: 1,
-            stockNotified: 1,
-            notificationEmail: '',
-            countUsed: 1,
-            orderHighlight: 1,
-            imageHighlight: '',
-            orderNovelty: 1,
-            createdAt: new Date,
-            updatedAt: new Date,
-            createdByUser: '',
-            updatedByUser: '',
-            partner: {},
-            category: {},
-            subcategory: {},
-            channel: [],
-            store: [],
-            ecommerce: {},
-            paymentMethod: [],
-            discount: {},
-            limitUser: []
-        }
-        const mapper = new Mapper()
-        const result = mapper.mapToCreate<Entity>(new Entity(), data, { omit: ['idReward', 'name', 'description'] })
-        expect(result).toEqual({
-            image: '',
-            imageAlt: '',
-            legal: '',
-            stock: 2,
-            tags: '',
-            reStockPoint: 1,
-            rewardDays: '',
-            status: 1,
-            stockNotified: 1,
-            notificationEmail: '',
-            countUsed: 1,
-            partner: {},
-            category: {},
-            subcategory: {},
-            ecommerce: {},
-            discount: {},
-        })
-    })
-    it('should throw error valid unique option', () => {
-        const data = {
-            idReward: 1,
-            name: '',
-            description: '',
-            image: '',
-            imageAlt: '',
-            legal: '',
-            stock: 2,
-            tags: '',
-            reStockPoint: 1,
-            rewardDays: '',
-            status: 1,
-            stockNotified: 1,
-            notificationEmail: '',
-            countUsed: 1,
-            orderHighlight: 1,
-            imageHighlight: '',
-            orderNovelty: 1,
-            createdAt: new Date,
-            updatedAt: new Date,
-            createdByUser: '',
-            updatedByUser: '',
-            partner: {},
-            category: {},
-            subcategory: {},
-            channel: [],
-            store: [],
-            ecommerce: {},
-            paymentMethod: [],
-            discount: {},
-            limitUser: []
-        }
-        const mapper = new Mapper()
-        expect(()=> mapper.mapToCreate<Entity>(new Entity(), data, { omit: ['idReward'], pick: ['name'] })).toThrowError('Options parameter must have pick or omit but no both')
-    })
-    it('should pick specific entities props and subEntities', () => {
+    it('should map only the props that are in the single and complex prps of pick option', () => {
         const data = {
             idReward: 1,
             name: '',
@@ -229,15 +140,73 @@ describe('Dynamic mapper testing', () => {
             limitUser: []
         }
         const mapper = new Mapper()
-        const result = mapper.mapToCreate<Category>(new Category(), data, {pick: ['name', 'subCategory.description']})
+        const result = mapper.mapToCreate<Category>(new Category(), data, { pick: { single: ['name'], complex: { subCategory: ['name', 'description'] } }})
         expect(result).toEqual({
             name: '',
             subCategory: {
+                name: '',
                 description: ''
             }
         })
     })
-    it('should rename and omit especific props', () => {
+    it('should map only the props that are in the single and complex and array props of pick option', () => {
+        const data = {
+            idReward: 1,
+            name: '',
+            description: '',
+            subCategory: {
+                name: '',
+                description: ''
+            },
+            stuff: [
+                {
+                    id: '',
+                    name: ''
+                },
+                {
+                    id: '',
+                    name: ''
+                }
+            ],
+            legal: '',
+            stock: 2,
+            tags: '',
+            reStockPoint: 1,
+            rewardDays: '',
+            status: 1,
+            stockNotified: 1,
+            notificationEmail: '',
+            countUsed: 1,
+            orderHighlight: 1,
+            imageHighlight: '',
+            orderNovelty: 1,
+            createdAt: new Date,
+            updatedAt: new Date,
+            createdByUser: '',
+            updatedByUser: '',
+            partner: {},
+            category: {},
+            subcategory: {},
+            channel: [],
+            store: [],
+            ecommerce: {},
+            paymentMethod: [],
+            discount: {},
+            limitUser: []
+        }
+        const mapper = new Mapper()
+        const result = mapper.mapToCreate<Category>(new Category(), data, { pick: { single: ['name'], complex: { subCategory: ['name', 'description'] }, array: { stuff: ['name', 'id']} }})
+        expect(result).toEqual({
+            name: '',
+            subCategory: {
+                name: '',
+                description: ''
+            },
+            stuff: [{name: '', id: ''}, {name: '', id: ''}]
+        })
+    })
+
+    it('should omit specific single props', ()=>{
         const data = {
             idReward: 1,
             name: '',
@@ -271,17 +240,8 @@ describe('Dynamic mapper testing', () => {
             limitUser: []
         }
         const mapper = new Mapper()
-        const result = mapper.mapToCreate<User>(new User(), data, { omit: ['image'] ,rename: {name: 'userName', description: 'desc'}})
+        const result = mapper.mapToCreate<Entity>(new Entity(), data, { omit: { single: ['name', 'description', 'idReward'] }})
         expect(result).toEqual({
-            userName: '',
-            desc: ''
-        })
-    })
-    it('should rename especific props', () => {
-        const data = {
-            idReward: 1,
-            name: '',
-            description: '',
             image: '',
             imageAlt: '',
             legal: '',
@@ -293,71 +253,15 @@ describe('Dynamic mapper testing', () => {
             stockNotified: 1,
             notificationEmail: '',
             countUsed: 1,
-            orderHighlight: 1,
-            imageHighlight: '',
-            orderNovelty: 1,
-            createdAt: new Date,
-            updatedAt: new Date,
-            createdByUser: '',
-            updatedByUser: '',
             partner: {},
             category: {},
             subcategory: {},
-            channel: [],
-            store: [],
             ecommerce: {},
-            paymentMethod: [],
             discount: {},
-            limitUser: []
-        }
-        const mapper = new Mapper()
-        const result = mapper.mapToCreate<User>(new User(), data, {rename: {name: 'userName', description: 'desc'}})
-        expect(result).toEqual({
-            userName: '',
-            desc: '',
-            image: ''
         })
     })
-    it('should pick and rename especific props', () => {
-        const data = {
-            idReward: 1,
-            name: '',
-            description: '',
-            image: '',
-            imageAlt: '',
-            legal: '',
-            stock: 2,
-            tags: '',
-            reStockPoint: 1,
-            rewardDays: '',
-            status: 1,
-            stockNotified: 1,
-            notificationEmail: '',
-            countUsed: 1,
-            orderHighlight: 1,
-            imageHighlight: '',
-            orderNovelty: 1,
-            createdAt: new Date,
-            updatedAt: new Date,
-            createdByUser: '',
-            updatedByUser: '',
-            partner: {},
-            category: {},
-            subcategory: {},
-            channel: [],
-            store: [],
-            ecommerce: {},
-            paymentMethod: [],
-            discount: {},
-            limitUser: []
-        }
-        const mapper = new Mapper()
-        const result = mapper.mapToCreate<User>(new User(), data, {pick: ['image'], rename: { image: 'img' }})
-        expect(result).toEqual({
-            img: ''
-        })
-    })
-    it('should omit specific entities props and subEntities', () => {
+
+    it('should omit data in single and complex option', () => {
         const data = {
             idReward: 1,
             name: '',
@@ -394,24 +298,77 @@ describe('Dynamic mapper testing', () => {
             limitUser: []
         }
         const mapper = new Mapper()
-        const result = mapper.mapToCreate<Category>(new Category(), data, {omit: ['name', 'subCategory.description']})
+        const result = mapper.mapToCreate<Category>(new Category(), data, { omit: { single: ['name', 'stuff'], complex: { subCategory: ['description'] } }})
         expect(result).toEqual({
+            status: 1,
+            subCategory: {
+                name: ''
+            }
+        })
+    })
+
+    it('should map only the props that are in the single and complex and array props of omit option', () => {
+        const data = {
+            idReward: 1,
+            name: '',
+            description: '',
+            subCategory: {
+                name: '',
+                description: ''
+            },
+            stuff: [
+                {
+                    id: '',
+                    name: ''
+                },
+                {
+                    id: '',
+                    name: ''
+                }
+            ],
+            legal: '',
+            stock: 2,
+            tags: '',
+            reStockPoint: 1,
+            rewardDays: '',
+            status: 1,
+            stockNotified: 1,
+            notificationEmail: '',
+            countUsed: 1,
+            orderHighlight: 1,
+            imageHighlight: '',
+            orderNovelty: 1,
+            createdAt: new Date,
+            updatedAt: new Date,
+            createdByUser: '',
+            updatedByUser: '',
+            partner: {},
+            category: {},
+            subcategory: {},
+            channel: [],
+            store: [],
+            ecommerce: {},
+            paymentMethod: [],
+            discount: {},
+            limitUser: []
+        }
+        const mapper = new Mapper()
+        const result = mapper.mapToCreate<Category>(new Category(), data, { omit: { single: ['name'], complex: { subCategory: ['description'] }, array: { stuff: ['id']} }})
+        expect(result).toEqual({
+            status: 1,
             subCategory: {
                 name: ''
             },
-            status: 1
+            stuff: [{name: ''}, {name: ''}]
         })
     })
 
-    it('should pick specific entities props, subEntities and rename', () => {
+    it('should rename single props', () => {
         const data = {
             idReward: 1,
             name: '',
             description: '',
-            subCategory: {
-                name: '',
-                description: ''
-            },
+            image: '',
             imageAlt: '',
             legal: '',
             stock: 2,
@@ -440,24 +397,36 @@ describe('Dynamic mapper testing', () => {
             limitUser: []
         }
         const mapper = new Mapper()
-        const result = mapper.mapToCreate<Category>(new Category(), data, { pick: ['name', 'subCategory.description'], rename: { name: 'n', subCategory: 'sub' } })
+        const result = mapper.mapToCreate<Entity>(new Entity(), data, {rename: { single: [{idReward: 'id'}, {name: 'nombre'}, {description: 'desc'}]}})
         expect(result).toEqual({
-            n: '',
-            sub: {
-                description: ''
-            }
+            id:  1,
+            nombre: '',
+            desc: '',
+            image: '',
+            imageAlt: '',
+            legal: '',
+            stock: 2,
+            tags: '',
+            reStockPoint: 1,
+            rewardDays: '',
+            status: 1,
+            stockNotified: 1,
+            notificationEmail: '',
+            countUsed: 1,
+            partner: {},
+            category: {},
+            subcategory: {},
+            ecommerce: {},
+            discount: {},
         })
     })
 
-    it('should omit specific props, subEntities and rename', () => {
+    it('should rename single and complex props', () => {
         const data = {
             idReward: 1,
             name: '',
             description: '',
-            subCategory: {
-                name: '',
-                description: ''
-            },
+            image: '',
             imageAlt: '',
             legal: '',
             stock: 2,
@@ -475,8 +444,16 @@ describe('Dynamic mapper testing', () => {
             updatedAt: new Date,
             createdByUser: '',
             updatedByUser: '',
-            partner: {},
-            category: {},
+            partner: {
+                cat: '',
+                name: '',
+                title: ''
+            },
+            category: {
+                status: 1,
+                name: '',
+                desc: ''
+            },
             subcategory: {},
             channel: [],
             store: [],
@@ -485,14 +462,112 @@ describe('Dynamic mapper testing', () => {
             discount: {},
             limitUser: []
         }
+
         const mapper = new Mapper()
-        const result = mapper.mapToCreate<Category>(new Category(), data, { omit: ['subCategory.name'], rename: { name: 'n', subCategory: 'sub' } })
+        const result = mapper.mapToCreate<Entity>(new Entity(), data, { rename: { single: [{idReward: 'id'}, {name: 'nombre'}, {description: 'desc'}], complex: { partner: [{ cat: 'categoria'}], category: [{name: 'nombre'}]}}})
         expect(result).toEqual({
-            n: '',
+            id:  1,
+            nombre: '',
+            desc: '',
+            image: '',
+            imageAlt: '',
+            legal: '',
+            stock: 2,
+            tags: '',
+            reStockPoint: 1,
+            rewardDays: '',
             status: 1,
-            sub: {
-                description: ''
+            stockNotified: 1,
+            notificationEmail: '',
+            countUsed: 1,
+            partner: {
+                categoria: '',
+                name: '',
+                title: ''
+            },
+            category: {
+                status: 1,
+                nombre: '',
+                desc: ''
+            },
+            subcategory: {},
+            ecommerce: {},
+            discount: {},
+        })
+    })
+    it('should rename single and complex props and omit props and sub props', () => {
+        const data = {
+            idReward: 1,
+            name: '',
+            description: '',
+            image: '',
+            imageAlt: '',
+            legal: '',
+            stock: 2,
+            tags: '',
+            reStockPoint: 1,
+            rewardDays: '',
+            status: 1,
+            stockNotified: 1,
+            notificationEmail: '',
+            countUsed: 1,
+            orderHighlight: 1,
+            imageHighlight: '',
+            orderNovelty: 1,
+            createdAt: new Date,
+            updatedAt: new Date,
+            createdByUser: '',
+            updatedByUser: '',
+            partner: {
+                cat: '',
+                name: '',
+                title: ''
+            },
+            category: {
+                status: 1,
+                name: '',
+                desc: ''
+            },
+            subcategory: {},
+            channel: [],
+            store: [],
+            ecommerce: {},
+            paymentMethod: [],
+            discount: {},
+            limitUser: []
+        }
+
+        const mapper = new Mapper()
+        const result = mapper.mapToCreate<Entity>(new Entity(), data, 
+            { 
+                omit: { single: ['image', 'legal'], complex: { partner: ['name', 'title'], category: ['status'] }}, 
+                rename: {
+                single: [{idReward: 'id'}, {name: 'nombre'}, {description: 'desc'}], complex: { partner: [{ cat: 'categoria'}], category: [{name: 'nombre'}]}
             }
+        })
+        expect(result).toEqual({
+            id:  1,
+            nombre: '',
+            desc: '',
+            imageAlt: '',
+            stock: 2,
+            tags: '',
+            reStockPoint: 1,
+            rewardDays: '',
+            status: 1,
+            stockNotified: 1,
+            notificationEmail: '',
+            countUsed: 1,
+            partner: {
+                categoria: ''
+            },
+            category: {
+                nombre: '',
+                desc: ''
+            },
+            subcategory: {},
+            ecommerce: {},
+            discount: {},
         })
     })
 })

@@ -13,8 +13,16 @@ export class Entity {
         public stockNotified = 1
         public notificationEmail = ''
         public countUsed = 1
-        public partner = {}
-        public category = {}
+        public partner = {
+          cat: '',
+          name: '',
+          title: ''
+        }
+        public category = {
+          status: 1,
+          name: '',
+          desc: ''
+        }
         public subcategory = {}
         public ecommerce = {}
         public discount = {}
