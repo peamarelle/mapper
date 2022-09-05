@@ -1,57 +1,75 @@
 import { Pick } from './operations/pick'
-
-interface IOption {
-    pick?: { single?: string[], complex?: {[key: string]: string[]}, array?: {[key: string]: string[]}},
-    omit?: string[],
-    rename?: { [key: string]: string }
-}
+import { Omit } from './operations/omit'
+import { ISpecification } from './interfaces/specification'
+import { Rename } from './operations/rename'
 
 export class Mapper {
+
   private pick: Pick
+
+  private omit: Omit
+
+  private rename: Rename
+  
   private entityProps: Array<string> = []
-  private _data: any
 
   constructor() {
+
     this.pick = new Pick()
+
+    this.omit = new Omit()
+
+    this.rename = new Rename()
   }
 
-    public mapToCreate<t> (entity: t, data: any, opts?: IOption): { [key: string]: any } {
+    public mapToCreate<t> (entity: t, data: any, specification?: ISpecification): { [key: string]: any } {
+
       this.setEntityProps(entity)
-      this.setData(data)
-      this.ensureThatNotHasPickAndOmit(opts)
-      return (opts?.omit || opts?.pick) ? this.pickOrOmitProps(opts) : this.filterEntityProps(data)
+
+      this.ensureThatNotHasPickAndOmit(specification)
+
+      let filteredData = this.filterEntityProps(data)
+
+      if(specification?.pick) filteredData = this.pick.filter(specification.pick, filteredData)
+
+      if(specification?.omit) filteredData = this.omit.filter(specification.omit, filteredData)
+
+      if(specification?.rename) filteredData = this.rename.map(specification.rename, filteredData)
+
+      return filteredData
     }
 
     private setEntityProps (entity: any): void {
-      this.entityProps = Object.keys(entity)
-    }
 
-    private setData (data: any) {
-      this._data = data
+      this.entityProps = Object.keys(entity)
+
     }
 
     private belongsEntity (prop: any): boolean {
-      return this.entityProps.includes(prop)
-    }
 
+      return this.entityProps.includes(prop)
+
+    }
+    
     private filterEntityProps (data: any): {[key: string]: any} {
-      const entityFiltered: {[key: string]: any} = {}
-      for (const prop in data) {
-        if (this.belongsEntity(prop)) {
-          entityFiltered[prop] = data[prop]
-        }
-      }
+
+      const propsBelongEntity = Object.keys(data).filter(prop => this.belongsEntity(prop))
+
+      const entityFiltered = propsBelongEntity.reduce((acc: {[key: string]: any}, prop: string) =>{
+
+        acc[prop] = data[prop]
+
+        return acc
+
+      },{})
+
       return entityFiltered
     }
 
-    private pickOrOmitProps (ops: IOption): {[key: string]: any} {
-      let buildData = {}
-      buildData =  ops.pick ? this.pick.build(ops.pick, this._data) : {}
-      return buildData
-    }
+    private ensureThatNotHasPickAndOmit (specification?: ISpecification): void | never {
 
-    private ensureThatNotHasPickAndOmit (opts?: IOption): void | never {
-      if (opts?.omit && opts?.pick) throw new Error('Options parameter must have pick or omit but no both')
-    }
+      if (specification?.omit && specification?.pick) throw new Error('Options parameter must have pick or omit but no both')
 
-}
+    }
+    
+  }
