@@ -1,56 +1,63 @@
 import { IOption } from '../interfaces/specification'
 
 export class Omit {
-    filter({ single, complex, array }: IOption, data: any): {[key: string]: any} {
-        let processData = {}
+    private processData: any = {}
+    private options: IOption = {}
+    private data: {[key:string]: any} = {}
 
-        if(single) processData = {...processData, ...this.single(single, data) }
-
-        if(complex) processData = {...processData, ...this.complex(complex, data) }
-
-        if(array) processData = {...processData, ...this.array(array, data) }
-
-        return processData
+    public filter(options: IOption, data: any): {[key:string]: any} {
+        this.options = options
+        this.data = data
+        return this.single()
+        .complex()
+        .array()
+        .getProcessData
     }
 
-    private single(singleProps: string[], data: any): {[key: string]: any} {
-
-        const omittedSingleProps: {[key: string]: any} = {}
-
-        const filterProps = Object.keys(data).filter(prop => !singleProps.includes(prop))
-
-        filterProps.forEach(prop => omittedSingleProps[prop] = data[prop])
-
-        return omittedSingleProps
+    private get getProcessData() {
+        return this.processData
     }
 
-    private complex(complex: {[key: string]: string[]}, data: any): {[key: string]: any} {
+    private single(): this {
+        if(!this.options.single) return this
 
-        let omitedComplexProps: {[key: string]: any} = {}
+        const single = this.options.single
+
+        const filterProps = Object.keys(this.data).filter(prop => !single.includes(prop))
+
+        filterProps.forEach(prop => this.processData[prop] = this.data[prop])
+
+        return this
+    }
+
+    private complex(): this {
+        if(!this.options.complex) return this
+
+        const complex = this.options.complex
 
         const propsToOmit = Object.keys(complex)
 
-        // Map properties in complex option.
-        propsToOmit.forEach(prop => omitedComplexProps[prop] = data[prop])
+        propsToOmit.forEach(prop => this.processData[prop] = this.data[prop])
 
-        // Delete sub properties to omit.
-        propsToOmit.forEach(prop => complex[prop].forEach(subProp => this.deleteSubProp(prop, subProp, omitedComplexProps)))
-        
-        return omitedComplexProps
+        propsToOmit.forEach(prop => complex[prop].forEach((subProp: string) => this.deleteSubProp(prop, subProp)))
+
+        return this
     }
 
-    private array(arrays: {[key: string]: string[]}, data: any): {[key: string]: any[]} {
+    private array(): this {
+        if(!this.options.array) return this
 
-        let result: {[key: string]: any[]} = {}
+        const arrays = this.options.array
 
         for (const arrayName in arrays) {
 
             const propsToOmit = arrays[arrayName]
-
-            result[arrayName] = this.mapDynamic(data[arrayName], propsToOmit)
-
+    
+            this.processData[arrayName] = this.mapDynamic(this.data[arrayName], propsToOmit)
+    
         }
-        return result
+
+        return this
     }
 
     private mapDynamic(data: any, propsToOmit: string[]): {[key: string]: any}[] {
@@ -69,9 +76,7 @@ export class Omit {
         })
     }
 
-    private deleteSubProp(prop: string, subProp: string, omitedComplexProps: any): void {
-
-        delete omitedComplexProps[prop][subProp]
-        
+    private deleteSubProp(prop: string, subProp: string): void {
+        delete this.processData[prop][subProp]
     }
 }
