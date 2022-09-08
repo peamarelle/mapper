@@ -4,60 +4,56 @@ import { ISpecification } from './interfaces/specification'
 import { Rename } from './operations/rename'
 
 export class Mapper {
-  private pick: Pick
+  private pick: Pick = new Pick()
+  private omit: Omit = new Omit()
+  private rename: Rename = new Rename()
+  private mapKeys: { [key: string]: any } = {}
 
-  private omit: Omit
-
-  private rename: Rename
-  
-  private entityProps: Array<string> = []
-
-  constructor() {
-    this.pick = new Pick()
-    this.omit = new Omit()
-    this.rename = new Rename()
+  public mapToCreate<t> (entity: t, data: any, specification?: ISpecification): { [key: string]: any } {
+    return this.getPropsFromEntity(data, entity)
+      .pickPorps(specification)
+      .omitPorps(specification)
+      .renameProps(specification)
+      .getMapKeys
   }
 
-    public mapToCreate<t> (entity: t, data: any, specification?: ISpecification): { [key: string]: any } {
-      this.setEntityProps(entity)
-
-      this.ensureThatNotHasPickAndOmit(specification)
-
-      let filteredData = this.filterEntityProps(data)
-
-      if(specification?.pick) filteredData = this.pick.filter(specification.pick, filteredData)
-
-      if(specification?.omit) filteredData = this.omit.filter(specification.omit, filteredData)
-
-      if(specification?.rename) filteredData = this.rename.map(specification.rename, filteredData)
-
-      return filteredData
-    }
-
-    private setEntityProps (entity: any): void {
-      this.entityProps = Object.keys(entity)
-    }
-
-    private belongsEntity (prop: any): boolean {
-      return this.entityProps.includes(prop)
-    }
-    
-    private filterEntityProps (data: any): {[key: string]: any} {
-      const dataKeys = Object.keys(data)
-
-      const propsBelongEntity = dataKeys.filter(prop => this.belongsEntity(prop))
-
-      const entityFiltered = propsBelongEntity.reduce((acc: {[key: string]: any}, prop: string) =>{
-        acc[prop] = data[prop]
-
-        return acc
-      },{})
-
-      return entityFiltered
-    }
-
-    private ensureThatNotHasPickAndOmit (specification?: ISpecification): void | never {
-      if (specification?.omit && specification?.pick) throw new Error('Options parameter must have pick or omit but no both')
-    }
-    
+  private get getMapKeys (): { [key: string]: any } {
+    return this.mapKeys
   }
+
+  private belongsEntity (prop: any, entity: any): boolean {
+    return Object.keys(entity).includes(prop)
+  }
+
+  private getPropsFromEntity (data: any, entity: any): this {
+    Object.keys(data)
+      .filter(prop => this.belongsEntity(prop, entity))
+      .forEach(prop => { this.mapKeys[prop] = data[prop] })
+
+    return this
+  }
+
+  private pickPorps (specification?: ISpecification): this {
+    if (!specification?.pick) return this
+
+    this.mapKeys = this.pick.map(this.mapKeys, specification)
+
+    return this
+  }
+
+  private omitPorps (specification?: ISpecification): this {
+    if (!specification?.omit) return this
+
+    this.mapKeys = this.omit.map(this.mapKeys, specification)
+
+    return this
+  }
+
+  private renameProps (specification?: ISpecification): this {
+    if (!specification?.rename) return this
+
+    this.mapKeys = this.rename.map(this.mapKeys, specification)
+
+    return this
+  }
+}

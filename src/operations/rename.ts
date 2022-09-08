@@ -1,95 +1,78 @@
-import { IRenameOptions } from "../interfaces/specification"
+/* eslint-disable no-return-assign */
+import { IRenameOptions, ISpecification } from '../interfaces/specification'
 
 export class Rename {
-    //{ single: [{name: 'nombre'}, {idReward: id}], complex: { category: [{ subcategory: 'sub categoria'}, {name: 'nombre'}]} }
+    private processData: any = {}
     private renamedProps: string[] = []
 
-    public map(options: IRenameOptions, data: any): {[key: string]: any} {
+    public map (data: any, specification?: ISpecification): {[key: string]: any} {
+      if (!specification?.rename) return {}
 
-        let renamedProps: {[key: string]: any} = {}
-
-        if(options.complex) renamedProps = {...renamedProps, ...this.complex(options.complex, data) }
-
-        if(options.single) renamedProps = {...renamedProps, ...this.single(options.single, data) }
-
-        const restOfSimpleProps = this.getRestOfProps(data)
-
-        return { ...renamedProps, ...restOfSimpleProps }
+      return this.complex(data, specification.rename)
+        .single(data, specification.rename)
+        .getRestOfProps(data)
+        .getProcessData
     }
 
-    private single(propsToRename: any[], data: any): {[key:string]: any} {
-        
-        const result: {[key:string]: string} = {}
+    private get getProcessData () {
+      return this.processData
+    }
 
-        propsToRename.forEach((propToRename: {[key:string]: string}) => {
+    private single (data: any, options?: IRenameOptions): this {
+      if (!options?.single) return this
 
-            const [oldName, newName]: string[] = Object.entries(propToRename).flat()
+      const propsToRename = options.single
 
-            result[newName] = data[oldName]
-
-            this.saveRenamedProps(oldName)
+      Object.keys(propsToRename)
+        .forEach((key: string) => {
+          this.renameProp(propsToRename, key, data)
+          this.renamedProps.push(key)
         })
-        return result
+
+      return this
     }
 
-    private complex(propsToRename: any, data: any): {[key:string]: any} {
+    private complex (data: any, options?: IRenameOptions): this {
+      if (!options?.complex) return this
 
-        const result: {[key:string]:any} = {}
+      const objectsToRename = options.complex
 
-        const propNames = Object.keys(propsToRename)
-
-        propNames.forEach(prop => {
-
-            result[prop] = this.renameSubProps(propsToRename[prop], data[prop])
-
-            const subProps = Object.keys(data[prop])
-
-            const subPropsRenamed = propsToRename[prop].map((propRenamed: any) => Object.keys(propRenamed)[0])
-
-            const restOfSubProps = subProps.filter(subProp => !subPropsRenamed.includes(subProp))
-
-            result[prop] = this.addRestOfSubProps(restOfSubProps, result[prop], data[prop])
-
-            this.saveRenamedProps(prop)
+      Object.keys(objectsToRename)
+        .forEach(prop => {
+          this.renameSubProps(prop, objectsToRename[prop], data[prop])
+          this.saveRenamedProps(prop)
         })
-        return result
+
+      return this
     }
 
-    private saveRenamedProps(propName: string): void {
-        this.renamedProps.push(propName)
+    private renameProp (propsToRename: any, key: string, data: any): void {
+      const newKeyName = propsToRename[key]
+      this.processData[newKeyName] = data[key]
     }
 
-    // Return props that have'nt renamed.
-    private getRestOfProps(data: any):  {[key: string]:any} {
+    private renameSubProps (prop: string, renameSubKeys: any, subProps: any): void {
+      this.processData[prop] = {}
 
-        const restOfProps = Object.keys(data).filter((prop: string) => !this.renamedProps.includes(prop))
-
-        return restOfProps.reduce((acc: {[key: string]:any}, prop: string)=>{
-
-            acc[prop] = data[prop]
-
-            return acc
-
-        }, {})
+      Object.keys(subProps)
+        .forEach((subKey) => {
+          this.processData[prop][renameSubKeys[subKey] || subKey] = subProps[subKey]
+        })
     }
 
-    private renameSubProps(subPropsToRename: any[], data: any): {[key:string]: any} {
-
-        return subPropsToRename.reduce((acc: {[key:string]: any}, subProp: {[key:string]: string})=> {
-
-            const [ subPropToRename ] = Object.keys(subProp)
-
-            acc[subProp[subPropToRename]] = data[subPropToRename]
-
-            return acc
-
-        }, {})
+    private saveRenamedProps (propName: string): void {
+      this.renamedProps.push(propName)
     }
 
-    private addRestOfSubProps(subPropsNotRenamed: string[], renamedProperty: any, data: any): {[key: string]: any} {
+    private isNotRenamed (key: string): boolean {
+      return !this.renamedProps.includes(key)
+    }
 
-        subPropsNotRenamed.forEach(subProp => renamedProperty = {...renamedProperty, [subProp]: data[subProp]})
+    private getRestOfProps (data: any): this {
+      Object.keys(data)
+        .filter((key: string) => this.isNotRenamed(key))
+        .forEach((prop: string) => this.processData[prop] = data[prop])
 
-        return renamedProperty
+      return this
     }
 }

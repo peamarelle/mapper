@@ -1,50 +1,82 @@
+import { IOption, ISpecification } from '../interfaces/specification'
+
 export class Pick {
+    private processData: any = {}
+    private options: IOption = {}
+    private data: any = {}
 
-    filter({ single, complex, array }: { single?: string[], complex?: {[key: string]: string[]}, array?: {[key: string]: string[]}}, data: any): {[key: string]: any} {
-        let processData = {}
+    public map (data: any, specification?: ISpecification): {[key: string]: any} {
+      if (!specification?.pick) return {}
 
-        if(single) processData = {...processData, ...this.single(single, data) }
+      this.options = specification.pick
+      this.data = data
 
-        if(complex) processData = {...processData, ...this.complex(complex, data) }
-
-        if(array) processData = {...processData, ...this.array(array, data) }
-
-        return processData
+      return this.single()
+        .complex()
+        .array()
+        .getProcessData
     }
 
-    private single(singleProps: string[], data: any): {[key: string]: any} {
-        const pickedSingleProps: {[key: string]: any} = {}
-        singleProps.forEach(prop => pickedSingleProps[prop] = data[prop])
-        return pickedSingleProps
+    private get getProcessData () {
+      return this.processData
     }
 
-    private complex(complex: {[key: string]: string[]}, data: any): {[key: string]: any} {
-        const pickedComplexProps: {[key: string]: any} = {}
-        const complexPropsToPick = Object.keys(complex)
-        complexPropsToPick.forEach(prop => {
-            pickedComplexProps[prop] = {}
-            complex[prop].forEach(subProp => {
-                pickedComplexProps[prop][subProp] = data[prop][subProp]
-            })
+    private single (): this {
+      if (!this.options.single) return this
+
+      const propsToPick: string[] = this.options.single
+
+      propsToPick.forEach(prop => { this.processData[prop] = this.data[prop] })
+
+      return this
+    }
+
+    private complex (): this {
+      if (!this.options.complex) return this
+
+      const mapKeys: {[key: string]: any} = {}
+
+      const propsToPick = this.options.complex
+
+      const keysToMap: string[] = Object.keys(propsToPick)
+
+      keysToMap.forEach((prop: string) => {
+        mapKeys[prop] = {}
+
+        propsToPick[prop].forEach((subProp: string) => {
+          mapKeys[prop][subProp] = this.data[prop][subProp]
         })
-        return pickedComplexProps
+      })
+
+      this.processData = { ...this.processData, ...mapKeys }
+
+      return this
     }
 
-    private array(arrays: {[key: string]: string[]}, data: any): {[key: string]: any[]} {
-        let result: {[key: string]: any[]} = {}
-        for (const arrayName in arrays) {
-            const propsToPick = arrays[arrayName]
-            result[arrayName] = this.mapDynamic(arrayName, propsToPick, data)
-        }
-        return result
+    private array (): this {
+      if (!this.options.array) return this
+
+      const mappedArrays: {[key: string]: any[]} = {}
+
+      const arraysToMap = this.options.array
+
+      for (const arrayName in arraysToMap) {
+        const propsToPick = arraysToMap[arrayName]
+
+        mappedArrays[arrayName] = this.mapAttributes(this.data[arrayName], propsToPick)
+      }
+
+      this.processData = { ...this.processData, ...mappedArrays }
+
+      return this
     }
 
-    private mapDynamic(arrayName: string, propsToPick: string[], data: any): {[key: string]: any}[] {
-        return data[arrayName].map((obj: {[key: string]: any}) => {
-            return propsToPick.reduce((accum: {[key: string]: any}, prop: string)=> {
-            accum[prop] = obj[prop]
-            return accum
-         }, {})
-        })
+    private mapAttributes (multipleData: any[], propsToPick: string[]): any[] {
+      return multipleData.map((object: any) => {
+        return propsToPick.reduce((accum: any, prop: string) => {
+          accum[prop] = object[prop]
+          return accum
+        }, {})
+      })
     }
 }
